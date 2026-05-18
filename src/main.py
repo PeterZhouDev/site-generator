@@ -1,31 +1,42 @@
-from textnode import TextNode, TextType
 import os
 import shutil
-from copystatic import copy_directory_recursive
+
+from copystatic import copy_files_recursive
+from gencontent import generate_page
+
+dir_path_static = "./static"
+dir_path_public = "./public"
+dir_path_content = "./content"
+template_path = "./template.html"
+
+
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    for entry in os.listdir(dir_path_content):
+        from_path = os.path.join(dir_path_content, entry)
+        to_path = os.path.join(dest_dir_path, entry)
+
+        if os.path.isfile(from_path):
+            if from_path.endswith(".md"):
+                generate_page(
+                    from_path,
+                    template_path,
+                    to_path[:-3] + ".html",
+                )
+        else:
+            os.makedirs(to_path, exist_ok=True)
+            generate_pages_recursive(from_path, template_path, to_path)
+
 
 def main():
-    # Creating a dummy TextNode instance
-    node = TextNode("This is some anchor text", TextType.LINK, "https://www.boot.dev")
-    
-    # Printing the object to see the __repr__ output
-    print(node)
+    print("Deleting public directory...")
+    if os.path.exists(dir_path_public):
+        shutil.rmtree(dir_path_public)
 
-    source_dir = "static"
-    target_dir = "public"
+    print("Copying static files to public directory...")
+    copy_files_recursive(dir_path_static, dir_path_public)
 
-    # Step 1: If destination exists, remove it completely
-    if os.path.exists(target_dir):
-        print(f"Cleaning up old target directory: '{target_dir}'...")
-        shutil.rmtree(target_dir)
-    
-    # Step 2: Recreate the base target folder fresh
-    print(f"Creating fresh target directory: '{target_dir}'...")
-    os.mkdir(target_dir)
-    
-    # Step 3: Copy source directory into destination recursively
-    print(f"Beginning asset copy from '{source_dir}' to '{target_dir}'...")
-    copy_directory_recursive(source_dir, target_dir)
-    print("Asset synchronization complete!")
+    print("Generating pages...")
+    generate_pages_recursive(dir_path_content, template_path, dir_path_public)
 
-if __name__ == "__main__":
-    main()# hello world
+
+main()
